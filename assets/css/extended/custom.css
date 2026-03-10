@@ -1,0 +1,24 @@
+/* 1. 拓宽主页面和文章页面的宽度 */
+:root {
+    --main-width: 1000px; /* 你可以根据喜好调整，比如 1100px 或 1200px */
+}
+
+.main {
+    max-width: var(--main-width);
+}
+
+.post-content, .post-header {
+    max-width: var(--main-width);
+}
+
+/* 2. 优化字体：使用更清晰的系统字体序列 */
+body {
+    font-family: "Inter", "Helvetica Neue", "Helvetica", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* 3. 让代码块也稍微宽一点，方便阅读 */
+.post-content pre {
+    max-width: 100%;
+}
