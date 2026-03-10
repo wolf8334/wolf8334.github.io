@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Posts | 多多的技术沉淀</title>
+<meta name="keywords" content="">
+<meta name="description" content="Posts - 多多的技术沉淀">
+<meta name="author" content="钱多多">
+<link rel="canonical" href="http://localhost:1313/posts/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.589c6b223ddcdb5d523e7ef626071a9fa18f7d5722f6f3ce22c0b4c226a853ff.css" integrity="sha256-WJxrIj3c211SPn72Jgcan6GPfVci9vPOIsC0wiaoU/8=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/posts/index.xml" title="rss">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="http://localhost:1313/posts/">
+  <meta property="og:site_name" content="多多的技术沉淀">
+  <meta property="og:title" content="Posts">
+  <meta property="og:description" content="NL2SQL RAG 架构 | 大模型调优 | 技术随笔">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="website">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Posts">
+  <meta name="twitter:description" content="NL2SQL RAG 架构 | 大模型调优 | 技术随笔">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }
+  ]
+}
+</script>
+</head>
+<body class="list" id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="多多的技术沉淀 (Alt + H)">多多的技术沉淀</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main"> 
+<header class="page-header"><div class="breadcrumbs"><a href="http://localhost:1313/">主页</a></div>
+  <h1>
+    Posts
+  </h1>
+</header>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Spring AI 全景指南（一）模型选型、推理加速与向量数据库的工程化实践
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>在生成式 AI（GenAI）从“技术尝鲜”迈向“企业级应用”的当下，Java 开发者面临着构建标准化、可扩展 AI 系统的挑战。
+Spring AI 的出现，标志着 Java 生态在 AI 领域的拼图补全。它不仅解决大模型调用的标准化问题，更打通了从模型推理（Inference）、数据向量化（Embedding）到检索增强（RAG）的完整技术链路。
+在传统的 LLM 交互中，模型往往是一次性输出（One-shot），结果的好坏完全依赖于概率。而当前AI工程化的一个重要演进方向，是构建具备自修正能力的智能体工作流。
+这种机制打破了线性的“提示词-响应”链路，引入了“生成-评估-迭代”的闭环：模型在产出初步结果后，会调用工具（如代码编译器、逻辑校验器）或自我反思提示词进行“自检”；一旦检测到错误或不符合预期的部分，系统会将错误信息反馈给模型，驱动其进行针对性的二次生成与优化。这种类人的“自我反省”能力，大幅提升了AI在复杂代码生成、长链条逻辑推理等任务中的准确率与鲁棒性。
+这个系列的文章将从基本定义开始，手把手的带领大家完成智能体的开发。首先，我们会从最简单的一问一答开始，到融合向量库实现隐性知识显性化的RAG检索，再到神经符号 AI (Neuro-Symbolic AI)，通过工具调用和语义逻辑，实现自修正（Self-Correction）或反思迭代 （Reflexion），完成智能体工作流（Agentic Workflow）的搭建。
+今天我们先从 Spring AI 框架出发，深度剖析主流模型厂商（DeepSeek/Qwen）的技术差异、模型后缀的语义分类，以及向量（Vector）技术在构建私有知识库中的核心作用。
+长期以来，接入大模型面临着严重的碎片化问题。不同的模型厂商（如 OpenAI、Anthropic、阿里云等）拥有各异的 API 规范，导致业务代码与底层模型强耦合。
+一、Spring AI：应用层的标准化抽象 Spring AI 沿袭了 Spring 框架“可移植服务抽象”（Portable Service Abstraction）的设计哲学。它定义了一套通用的接口规范（如 ChatClient、EmbeddingClient、VectorStore），将底层的模型差异屏蔽在框架之下。开发者只需更改配置文件中的 base-url 或 provider 参数，即可实现底层算力的无缝切换（例如从 GPT-4 迁移至 DeepSeek-V3），无需重构上层业务逻辑。这为企业在成本控制、合规性要求及模型能力迭代上提供了极大的架构灵活性。
+二、主流模型厂商与技术流派 当前国产大模型市场格局中，DeepSeek（深度求索） 与 Qwen（通义千问） 代表了两种不同的技术演进路线。
+1.DeepSeek (深度求索)
+技术架构：采用混合专家模型（MoE）架构，实现了在较低计算成本下达成极高的推理性能。 核心优势：极致性价比与理科能力。DeepSeek 在数学推理、代码生成及逻辑分析任务上表现优异，部分基准测试对标 GPT-4 Turbo，但推理成本显著低于同类产品。 适用场景：代码辅助生成、复杂逻辑推理、自动化测试脚本编写、成本敏感型的高频调用业务。
+2. Qwen (通义千问)
+技术架构：依托阿里庞大的多语言语料库进行训练，全能型基座模型。 核心优势：中文语境与长文本处理。Qwen 系列在中文语义理解、文档摘要及超长上下文（Long Context）支持方面表现稳健。其 72B 等大参数版本在通用知识问答中具有极高的准确率。 适用场景：企业知识库问答、智能客服、法律/金融文档分析、多轮对话系统。
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-12-09 12:00:06 +0800 CST'>2025年12月9日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
+  <a class="entry-link" aria-label="post link to Spring AI 全景指南（一）模型选型、推理加速与向量数据库的工程化实践" href="http://localhost:1313/posts/springai-1/"></a>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">多多的技术沉淀</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>

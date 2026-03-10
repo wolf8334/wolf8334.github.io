@@ -1,5 +1,6 @@
 baseURL = 'https://wolf8334.github.io/'
-languageCode = 'zh-cn'
+languageCode = "zh-cn"
+defaultContentLanguage = "zh"
 title = '多多的技术沉淀'
 theme = 'PaperMod' 
 
