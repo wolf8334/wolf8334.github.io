@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
-<title>Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索 | 多多的技术沉淀</title>
+<title>Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索 | 多多的技术沉淀</title>
 <meta name="keywords" content="">
 <meta name="description" content="在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
 本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
@@ -93,7 +93,7 @@ IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检
 
 </script><meta property="og:url" content="http://localhost:1313/posts/springai-3/">
   <meta property="og:site_name" content="多多的技术沉淀">
-  <meta property="og:title" content="Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索">
+  <meta property="og:title" content="Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索">
   <meta property="og:description" content="在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
 本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
 一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
@@ -121,7 +121,7 @@ IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检
     <meta property="article:modified_time" content="2025-12-11T08:01:06+08:00">
 
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索">
+  <meta name="twitter:title" content="Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索">
   <meta name="twitter:description" content="在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
 本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
 一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
@@ -158,7 +158,7 @@ IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检
     {
       "@type": "ListItem",
       "position":  2 ,
-      "name": "Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索",
+      "name": "Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索",
       "item": "http://localhost:1313/posts/springai-3/"
     }
   ]
@@ -168,8 +168,8 @@ IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索",
-  "name": "Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索",
+  "headline": "Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索",
+  "name": "Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索",
   "description": "在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。\n本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。\n一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。\nEmbedding模型 (如 BGE-M3, text-embedding-3)\n角色：它是制图师。\n功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。\n输入/输出： 输入文本-\u0026gt;输出 [0.012, -0.98, \u0026hellip;]。\nLLM (如Qwen, DeepSeek-V3)\n角色：它是作家。\n功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。\n输入/输出： 输入提示词(Prompt)-\u0026gt;输出自然语言。\nSpring AI 的策略\n使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。\n二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：\nDimensions (维度)\n这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。\nIndex Type (索引类型)\n为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。\nHNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。\nIVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。\n",
   "keywords": [
     
@@ -236,7 +236,7 @@ IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检
   <header class="post-header">
     <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
     <h1 class="post-title entry-hint-parent">
-      Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索
+      Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索
     </h1>
     <div class="post-meta"><span title='2025-12-11 08:01:06 +0800 CST'>2025年12月11日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span>
 

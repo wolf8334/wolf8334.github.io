@@ -3,7 +3,7 @@ date = '2025-12-11T08:01:06+08:00'
 draft = false
 ShowToc = true
 TocOpen = true
-title = 'Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索'
+title = 'Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索'
 +++
 
 在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。

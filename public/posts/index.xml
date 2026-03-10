@@ -9,7 +9,7 @@
     <lastBuildDate>Wed, 17 Dec 2025 19:11:06 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Spring AI 全景指南 (四) Spring AI &#43; PGVector &#43; 硅基流动：构建生产级RAG 架构的理性之路</title>
+      <title>Spring AI 全景指南（四）Spring AI &#43; PGVector &#43; 硅基流动：构建生产级RAG 架构的理性之路</title>
       <link>http://localhost:1313/posts/springai-4/</link>
       <pubDate>Wed, 17 Dec 2025 19:11:06 +0800</pubDate>
       <guid>http://localhost:1313/posts/springai-4/</guid>
@@ -32,7 +32,7 @@
 &lt;p&gt;成本优势：该平台托管了 Qwen 2.5 (7B/14B/32B/72B)、DeepSeek V3 等顶流开源模型，并提供了极高额度的免费调用策略。这对于研发阶段和中小规模应用而言，几乎抹平了推理成本。&lt;/p&gt;</description>
     </item>
     <item>
-      <title>Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索</title>
+      <title>Spring AI 全景指南（三）解构 RAG —— 从 BGE 向量模型到高维语义检索</title>
       <link>http://localhost:1313/posts/springai-3/</link>
       <pubDate>Thu, 11 Dec 2025 08:01:06 +0800</pubDate>
       <guid>http://localhost:1313/posts/springai-3/</guid>
@@ -60,7 +60,7 @@
 &lt;p&gt;IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。&lt;/p&gt;</description>
     </item>
     <item>
-      <title>Spring AI全景指南(二) 大模型接入与“黑话”翻译器的构建</title>
+      <title>Spring AI 全景指南（二）大模型接入与“黑话”翻译器的构建</title>
       <link>http://localhost:1313/posts/springai-2/</link>
       <pubDate>Wed, 10 Dec 2025 08:01:06 +0800</pubDate>
       <guid>http://localhost:1313/posts/springai-2/</guid>

@@ -3,7 +3,7 @@ date = '2025-12-10T08:01:06+08:00'
 draft = false
 ShowToc = true
 TocOpen = true
-title = 'Spring AI全景指南(二) 大模型接入与“黑话”翻译器的构建'
+title = 'Spring AI 全景指南（二）大模型接入与“黑话”翻译器的构建'
 +++
 
 在生成式AI技术栈逐渐标准化的今天，构建一个企业级AI应用已不再是Python及其生态的专利。对于广大的Java开发者而言，利用现有的Spring生态无缝接入大模型能力，是实现业务智能化的最优路径。

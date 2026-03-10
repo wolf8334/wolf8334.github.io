@@ -3,7 +3,7 @@ date = '2025-12-17T19:11:06+08:00'
 draft = false
 ShowToc = true
 TocOpen = true
-title = 'Spring AI 全景指南 (四) Spring AI + PGVector + 硅基流动：构建生产级RAG 架构的理性之路'
+title = 'Spring AI 全景指南（四）Spring AI + PGVector + 硅基流动：构建生产级RAG 架构的理性之路'
 +++
 ## 01 引子：从理论推演到工程落地
 
