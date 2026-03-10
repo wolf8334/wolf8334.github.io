@@ -29,6 +29,10 @@ buildFuture = false
         name = "github"
         url = "https://github.com/wolf8334"
 
+  [[params.socialIcons]]
+        name = "weixin"
+        url = "/images/wx.jpg"
+
 # 搜索功能开启（PaperMod 特色）
 [outputs]
     home = ["HTML", "RSS", "JSON"]
