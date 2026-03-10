@@ -166,27 +166,34 @@
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">Spring AI 全景指南（一）模型选型、推理加速与向量数据库的工程化实践
+    <h2 class="entry-hint-parent">Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索
     </h2>
   </header>
   <div class="entry-content">
-    <p>在生成式 AI（GenAI）从“技术尝鲜”迈向“企业级应用”的当下，Java 开发者面临着构建标准化、可扩展 AI 系统的挑战。
-Spring AI 的出现，标志着 Java 生态在 AI 领域的拼图补全。它不仅解决大模型调用的标准化问题，更打通了从模型推理（Inference）、数据向量化（Embedding）到检索增强（RAG）的完整技术链路。
-在传统的 LLM 交互中，模型往往是一次性输出（One-shot），结果的好坏完全依赖于概率。而当前AI工程化的一个重要演进方向，是构建具备自修正能力的智能体工作流。
-这种机制打破了线性的“提示词-响应”链路，引入了“生成-评估-迭代”的闭环：模型在产出初步结果后，会调用工具（如代码编译器、逻辑校验器）或自我反思提示词进行“自检”；一旦检测到错误或不符合预期的部分，系统会将错误信息反馈给模型，驱动其进行针对性的二次生成与优化。这种类人的“自我反省”能力，大幅提升了AI在复杂代码生成、长链条逻辑推理等任务中的准确率与鲁棒性。
-这个系列的文章将从基本定义开始，手把手的带领大家完成智能体的开发。首先，我们会从最简单的一问一答开始，到融合向量库实现隐性知识显性化的RAG检索，再到神经符号 AI (Neuro-Symbolic AI)，通过工具调用和语义逻辑，实现自修正（Self-Correction）或反思迭代 （Reflexion），完成智能体工作流（Agentic Workflow）的搭建。
-今天我们先从 Spring AI 框架出发，深度剖析主流模型厂商（DeepSeek/Qwen）的技术差异、模型后缀的语义分类，以及向量（Vector）技术在构建私有知识库中的核心作用。
-长期以来，接入大模型面临着严重的碎片化问题。不同的模型厂商（如 OpenAI、Anthropic、阿里云等）拥有各异的 API 规范，导致业务代码与底层模型强耦合。
-一、Spring AI：应用层的标准化抽象 Spring AI 沿袭了 Spring 框架“可移植服务抽象”（Portable Service Abstraction）的设计哲学。它定义了一套通用的接口规范（如 ChatClient、EmbeddingClient、VectorStore），将底层的模型差异屏蔽在框架之下。开发者只需更改配置文件中的 base-url 或 provider 参数，即可实现底层算力的无缝切换（例如从 GPT-4 迁移至 DeepSeek-V3），无需重构上层业务逻辑。这为企业在成本控制、合规性要求及模型能力迭代上提供了极大的架构灵活性。
-二、主流模型厂商与技术流派 当前国产大模型市场格局中，DeepSeek（深度求索） 与 Qwen（通义千问） 代表了两种不同的技术演进路线。
-1.DeepSeek (深度求索)
-技术架构：采用混合专家模型（MoE）架构，实现了在较低计算成本下达成极高的推理性能。 核心优势：极致性价比与理科能力。DeepSeek 在数学推理、代码生成及逻辑分析任务上表现优异，部分基准测试对标 GPT-4 Turbo，但推理成本显著低于同类产品。 适用场景：代码辅助生成、复杂逻辑推理、自动化测试脚本编写、成本敏感型的高频调用业务。
-2. Qwen (通义千问)
-技术架构：依托阿里庞大的多语言语料库进行训练，全能型基座模型。 核心优势：中文语境与长文本处理。Qwen 系列在中文语义理解、文档摘要及超长上下文（Long Context）支持方面表现稳健。其 72B 等大参数版本在通用知识问答中具有极高的准确率。 适用场景：企业知识库问答、智能客服、法律/金融文档分析、多轮对话系统。
+    <p>在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
+本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
+一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
+Embedding模型 (如 BGE-M3, text-embedding-3)
+角色：它是制图师。
+功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。
+输入/输出： 输入文本-&gt;输出 [0.012, -0.98, …]。
+LLM (如Qwen, DeepSeek-V3)
+角色：它是作家。
+功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。
+输入/输出： 输入提示词(Prompt)-&gt;输出自然语言。
+Spring AI 的策略
+使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。
+二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：
+Dimensions (维度)
+这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。
+Index Type (索引类型)
+为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。
+HNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。
+IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2025-12-09 12:00:06 +0800 CST'>2025年12月9日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
-  <a class="entry-link" aria-label="post link to Spring AI 全景指南（一）模型选型、推理加速与向量数据库的工程化实践" href="http://localhost:1313/posts/springai-1/"></a>
+  <footer class="entry-footer"><span title='2025-12-11 08:01:06 +0800 CST'>2025年12月11日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
+  <a class="entry-link" aria-label="post link to Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索" href="http://localhost:1313/posts/springai-3/"></a>
 </article>
 
 <article class="post-entry"> 
@@ -195,7 +202,7 @@ Spring AI 的出现，标志着 Java 生态在 AI 领域的拼图补全。它不
     </h2>
   </header>
   <div class="entry-content">
-    <p>Spring AI全景指南(二) 大模型接入与“黑话”翻译器的构建 在生成式AI技术栈逐渐标准化的今天，构建一个企业级AI应用已不再是Python及其生态的专利。对于广大的Java开发者而言，利用现有的Spring生态无缝接入大模型能力，是实现业务智能化的最优路径。
+    <p>在生成式AI技术栈逐渐标准化的今天，构建一个企业级AI应用已不再是Python及其生态的专利。对于广大的Java开发者而言，利用现有的Spring生态无缝接入大模型能力，是实现业务智能化的最优路径。
 本系列文章将剥离繁杂的概念包装，从工程落地的角度出发，系统性地拆解基于Java和Spring的AI开发流程。我们将沿着“基础对话-&gt;知识增强-&gt;智能体工作流”的技术进阶路线，逐步构建复杂的AI系统。
 基础接入：从最简单的“一问一答”开始，通过“办公室黑话翻译器”案例，掌握SpringAI的核心抽象与Prompt结构设计。
 RAG架构：引入向量数据库(Vector Store)，通过SQL语义化检索示例，实现隐性知识的显性化与企业私有数据的挂载。
@@ -217,8 +224,33 @@ User Message(用户输入)：来自终端用户的具体指令或问题。
 1 2 3 custom: coder-name: Qwen/Qwen2.5-Coder-7B-Instruct qwen-name: Qwen/Qwen3-8B 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 @Configuration public class AIConfig { private static final Logger log = LoggerFactory.getLogger(AIConfig.class); @Value(&#34;${custom.coder-name}&#34;) private String coderName; @Bean(&#34;qwenClient&#34;) public ChatClient.Builder chatClientBuilder(ChatModel chatModel) { return ChatClient.builder(chatModel); } @Bean(&#34;coderClient&#34;) public ChatClient.Builder dsChatClient(ChatClient.Builder builder) { log.info(&#34;加载代码生成模型 {}&#34;, coderName); return builder.defaultSystem(&#34;你是一位PostgreSQL数据库专家，只输出SQL语句，不要输出Markdown格式，不要解释。&#34;).defaultOptions(OpenAiChatOptions.builder().model(coderName).temperature(0.1).maxTokens(4096).build()); } } 1 2 3 4 5 6 7 8 9 10 11 12 13 @Service public class Chater { private final ChatClient chatClient; public Chater(@Qualifier(&#34;qwenClient&#34;) ChatClient.Builder builder) { this.chatClient = builder.build(); } public String call(String expansionPrompt,String requirement){ return chatClient.prompt().system(expansionPrompt).user(requirement).call().content(); } } 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 @Service @RequiredArgsConstructor public classOSGService{ private static final Logger log = LoggerFactory.getLogger(OSGService.class); private final Chater chater; public Result&lt;CommonData&gt; sayItBetter(String requirement) { //调用LLM把表达美化一下 String expansionPrompt = &#34;&#34;&#34; 你是一位在国企和互联网大厂都混迹超过10年的职场生存大师，深谙&#34;废话文学&#34;、&#34;黑话&#34;和&#34;高情商甩锅&#34;技巧。 你的任务是将用户输入的【大白话/心里话】翻译成【高情商/职场专业话术】。 【翻译原则】： 1. 情绪稳定：把愤怒转化为&#34;关切&#34;，把拒绝转化为&#34;排期问题&#34;，把不会转化为&#34;需进一步调研&#34;等等。 2. 用词考究：多用&#34;颗粒度&#34;、&#34;对齐&#34;、&#34;底层逻辑&#34;、&#34;抓手&#34;、&#34;赋能&#34;、&#34;闭环&#34;、&#34;协同&#34;、&#34;资源置换&#34;等词汇。 3. 语气委婉：绝对不要直接说&#34;不&#34;，要说类似于&#34;原则上是可行的，但在具体落地层面...&#34;。 4. 字数膨胀：原话越短，你翻译的要越长，显得思考深刻。 【示例】： 用户：这事我做不了。 你：基于当前的资源配比和项目优先级，该需求在落地层面存在一定的带宽瓶颈，建议我们重新对齐一下交付预期。 用户：甲方又在提傻傻的需求了。 你：提出的建议非常有建设性，为我们打开了新的视角。不过考虑到系统架构的稳态和现有排期，我们需要在可研阶段做更深度的风险评估。 请直接输出润色后的内容，不要输出多余的解释。 &#34;&#34;&#34;; if (requirement.isBlank()){ requirement = &#34;本来用户应该说点话让你转换的，但是什么也没说，你说几句告诉他要他先说你才能说。俏皮一点，可爱一点，撒娇卖萌也行，别说一大堆，十几二十个字就行。&#34;; } String translated = chater.call(expansionPrompt, requirement); log.info(&#34;用户输入已扩展 {}&#34;, translated); return Result.success(requirement,translated); } } 3.运行效果与解析 通过上述配置，当用户输入直白的拒绝或抱怨时，模型会基于预设的提示词进行语义重构。这种模式展示了LLM开发中最基础也最核心的范式：通过系统指令约束模型行为，利用通用大模型解决特定领域的文本处理问题。
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2025-12-09 12:00:06 +0800 CST'>2025年12月9日</span>&nbsp;·&nbsp;<span>2 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
+  <footer class="entry-footer"><span title='2025-12-10 08:01:06 +0800 CST'>2025年12月10日</span>&nbsp;·&nbsp;<span>2 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
   <a class="entry-link" aria-label="post link to Spring AI全景指南(二) 大模型接入与“黑话”翻译器的构建" href="http://localhost:1313/posts/springai-2/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Spring AI 全景指南（一）模型选型、推理加速与向量数据库的工程化实践
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>在生成式 AI（GenAI）从“技术尝鲜”迈向“企业级应用”的当下，Java 开发者面临着构建标准化、可扩展 AI 系统的挑战。
+Spring AI 的出现，标志着 Java 生态在 AI 领域的拼图补全。它不仅解决大模型调用的标准化问题，更打通了从模型推理（Inference）、数据向量化（Embedding）到检索增强（RAG）的完整技术链路。
+在传统的 LLM 交互中，模型往往是一次性输出（One-shot），结果的好坏完全依赖于概率。而当前AI工程化的一个重要演进方向，是构建具备自修正能力的智能体工作流。
+这种机制打破了线性的“提示词-响应”链路，引入了“生成-评估-迭代”的闭环：模型在产出初步结果后，会调用工具（如代码编译器、逻辑校验器）或自我反思提示词进行“自检”；一旦检测到错误或不符合预期的部分，系统会将错误信息反馈给模型，驱动其进行针对性的二次生成与优化。这种类人的“自我反省”能力，大幅提升了AI在复杂代码生成、长链条逻辑推理等任务中的准确率与鲁棒性。
+这个系列的文章将从基本定义开始，手把手的带领大家完成智能体的开发。首先，我们会从最简单的一问一答开始，到融合向量库实现隐性知识显性化的RAG检索，再到神经符号 AI (Neuro-Symbolic AI)，通过工具调用和语义逻辑，实现自修正（Self-Correction）或反思迭代 （Reflexion），完成智能体工作流（Agentic Workflow）的搭建。
+今天我们先从 Spring AI 框架出发，深度剖析主流模型厂商（DeepSeek/Qwen）的技术差异、模型后缀的语义分类，以及向量（Vector）技术在构建私有知识库中的核心作用。
+长期以来，接入大模型面临着严重的碎片化问题。不同的模型厂商（如 OpenAI、Anthropic、阿里云等）拥有各异的 API 规范，导致业务代码与底层模型强耦合。
+一、Spring AI：应用层的标准化抽象 Spring AI 沿袭了 Spring 框架“可移植服务抽象”（Portable Service Abstraction）的设计哲学。它定义了一套通用的接口规范（如 ChatClient、EmbeddingClient、VectorStore），将底层的模型差异屏蔽在框架之下。开发者只需更改配置文件中的 base-url 或 provider 参数，即可实现底层算力的无缝切换（例如从 GPT-4 迁移至 DeepSeek-V3），无需重构上层业务逻辑。这为企业在成本控制、合规性要求及模型能力迭代上提供了极大的架构灵活性。
+二、主流模型厂商与技术流派 当前国产大模型市场格局中，DeepSeek（深度求索） 与 Qwen（通义千问） 代表了两种不同的技术演进路线。
+1.DeepSeek (深度求索)
+技术架构：采用混合专家模型（MoE）架构，实现了在较低计算成本下达成极高的推理性能。 核心优势：极致性价比与理科能力。DeepSeek 在数学推理、代码生成及逻辑分析任务上表现优异，部分基准测试对标 GPT-4 Turbo，但推理成本显著低于同类产品。 适用场景：代码辅助生成、复杂逻辑推理、自动化测试脚本编写、成本敏感型的高频调用业务。
+2. Qwen (通义千问)
+技术架构：依托阿里庞大的多语言语料库进行训练，全能型基座模型。 核心优势：中文语境与长文本处理。Qwen 系列在中文语义理解、文档摘要及超长上下文（Long Context）支持方面表现稳健。其 72B 等大参数版本在通用知识问答中具有极高的准确率。 适用场景：企业知识库问答、智能客服、法律/金融文档分析、多轮对话系统。
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-12-09 12:00:06 +0800 CST'>2025年12月9日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
+  <a class="entry-link" aria-label="post link to Spring AI 全景指南（一）模型选型、推理加速与向量数据库的工程化实践" href="http://localhost:1313/posts/springai-1/"></a>
 </article>
     </main>
     

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索 | 多多的技术沉淀</title>
+<meta name="keywords" content="">
+<meta name="description" content="在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
+本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
+一、“制图师”与“作家”：Embedding 模型 vs LLM
+在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
+Embedding模型 (如 BGE-M3, text-embedding-3)
+角色：它是制图师。
+功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。
+输入/输出： 输入文本-&gt;输出 [0.012, -0.98, &hellip;]。
+LLM (如Qwen, DeepSeek-V3)
+角色：它是作家。
+功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。
+输入/输出： 输入提示词(Prompt)-&gt;输出自然语言。
+Spring AI 的策略
+使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。
+二、向量数据库的核心参数解析
+当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：
+Dimensions (维度)
+这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。
+Index Type (索引类型)
+为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。
+HNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。
+IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。">
+<meta name="author" content="钱多多">
+<link rel="canonical" href="http://localhost:1313/posts/springai-3/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.883882a40810a5a1f56315d6694af919a7bd41f76b01a90384eb95648425f60d.css" integrity="sha256-iDiCpAgQpaH1YxXWaUr5Gae9QfdrAakDhOuVZIQl9g0=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/springai-3/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="http://localhost:1313/posts/springai-3/">
+  <meta property="og:site_name" content="多多的技术沉淀">
+  <meta property="og:title" content="Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索">
+  <meta property="og:description" content="在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
+本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
+一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
+Embedding模型 (如 BGE-M3, text-embedding-3)
+角色：它是制图师。
+功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。
+输入/输出： 输入文本-&gt;输出 [0.012, -0.98, …]。
+LLM (如Qwen, DeepSeek-V3)
+角色：它是作家。
+功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。
+输入/输出： 输入提示词(Prompt)-&gt;输出自然语言。
+Spring AI 的策略
+使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。
+二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：
+Dimensions (维度)
+这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。
+Index Type (索引类型)
+为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。
+HNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。
+IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-12-11T08:01:06+08:00">
+    <meta property="article:modified_time" content="2025-12-11T08:01:06+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索">
+  <meta name="twitter:description" content="在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
+本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
+一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
+Embedding模型 (如 BGE-M3, text-embedding-3)
+角色：它是制图师。
+功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。
+输入/输出： 输入文本-&gt;输出 [0.012, -0.98, …]。
+LLM (如Qwen, DeepSeek-V3)
+角色：它是作家。
+功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。
+输入/输出： 输入提示词(Prompt)-&gt;输出自然语言。
+Spring AI 的策略
+使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。
+二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：
+Dimensions (维度)
+这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。
+Index Type (索引类型)
+为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。
+HNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。
+IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索",
+      "item": "http://localhost:1313/posts/springai-3/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索",
+  "name": "Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索",
+  "description": "在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。\n本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。\n一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。\nEmbedding模型 (如 BGE-M3, text-embedding-3)\n角色：它是制图师。\n功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。\n输入/输出： 输入文本-\u0026gt;输出 [0.012, -0.98, \u0026hellip;]。\nLLM (如Qwen, DeepSeek-V3)\n角色：它是作家。\n功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。\n输入/输出： 输入提示词(Prompt)-\u0026gt;输出自然语言。\nSpring AI 的策略\n使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。\n二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：\nDimensions (维度)\n这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。\nIndex Type (索引类型)\n为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。\nHNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。\nIVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。\n",
+  "keywords": [
+    
+  ],
+  "articleBody": "在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。\n本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。\n一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。\nEmbedding模型 (如 BGE-M3, text-embedding-3)\n角色：它是制图师。\n功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。\n输入/输出： 输入文本-\u003e输出 [0.012, -0.98, …]。\nLLM (如Qwen, DeepSeek-V3)\n角色：它是作家。\n功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。\n输入/输出： 输入提示词(Prompt)-\u003e输出自然语言。\nSpring AI 的策略\n使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。\n二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：\nDimensions (维度)\n这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。\nIndex Type (索引类型)\n为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。\nHNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。\nIVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。\nDistance Type (距离/度量方式)\n决定了如何计算两个向量像不像，常见计算方式包括Cosine、Euclidean、Inner Product三种。\nCosine (余弦相似度)： 衡量两个向量夹角的余弦值。最常用，侧重于语义方向的一致性，而非文本长度。\nEuclidean / L2 (欧几里得距离)： 空间中两点的直线距离。\nInner Product (内积)： 适用于归一化后的向量。\n三、检索逻辑：SQL 视角下的 Top-K 与 Threshold 在Spring AI的VectorStore 接口背后，实际发生的是一次基于数学运算的数据库查询。\n假设我们使用 PostgreSQL (pgvector)，当用户发起查询时，涉及以下核心参数：\nTop-K：截取最相似的前K个片段。\nSimilarity Threshold (相似度阈值)： 这是一个 0 到 1 之间的数值(通常)。只有相似度高于该值的片段才会被召回，用于过滤低相关性的噪声，通常Similarity与相似度成正比,其计算公式如下,具体实现视数据库算子定义而定： 1 Similarity = 1 - Distance SQL示例：\nSpring AI 会将自然语言问题转化为向量 [0.1, …]，然后执行类似如下的 SQL：\n1 2 3 4 5 6 -- 假设 embedding 列存储向量数据 -- \u003c=\u003e 操作符代表余弦距离计算 SELECT content, (1 - (embedding \u003c=\u003e '[0.1, 0.2, ... 0.9]')) as similarity FROM enterprise_knowledge_base WHERE (1 - (embedding \u003c=\u003e '[0.1, 0.2, ... 0.9]')) \u003e 0.75 -- 对应 similarityThreshold ORDER BY embedding \u003c=\u003e '[0.1, 0.2, ... 0.9]' ASC -- 按距离排序 LIMIT 5; 四、Spring AI 完整 RAG 流程实现 理解了底层逻辑后，在 Spring AI 中实现 RAG 就变得顺理成章。代码逻辑分为三步：\n向量化：将用户问题通过 Embedding Model 转为向量。\n检索：拿着向量去数据库查 Top-K。\n生成：将检索到的文本(Context)注入到Prompt中，发送给LLM。\n五、痛点与思考：用户“说方言”怎么办 至此，我们已经搭建了一个标准的 RAG 系统。但在实际生产中，我们面临一个严峻的挑战：Garbage In, Garbage Out。\n如果用户问得专业：“请列出2025考勤制度中关于年假的规定。”-\u003e检索精准。如果用户问得随性：“请假怎么弄？我想歇两天。”-\u003e语义模糊，可能检索到“年假”、“事假”甚至“调休”等一堆无关数据。如果检索的相关度无法得到物理保证，那么检索出的上下文是错误的，LLM就会一本正经地胡说八道。\n向量检索高度依赖“语义相似性”，如何解决这个问题？\n这就需要我们跳出简单的“检索-生成”线性思维，引入**智能体工作流 (Agentic Workflow)**的概念。\n我们需要构建一个输入规整化的预处理环节：先调用一次 LLM 提取关键意图(“提取关键字”)，再用规整后的关键字去查向量库，拿到结果后再次调用LLM进行自校验(Self-Correction)。\n这种“LLM-\u003eVector-\u003eLLM”的链式思考与自我修正机制，正是我们下一篇要深入探讨的主题：从RAG走向Agent —— 神经符号AI与反思迭代的工程实践。\n",
+  "wordCount" : "213",
+  "inLanguage": "zh",
+  "datePublished": "2025-12-11T08:01:06+08:00",
+  "dateModified": "2025-12-11T08:01:06+08:00",
+  "author":{
+    "@type": "Person",
+    "name": "钱多多"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/springai-3/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "多多的技术沉淀",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="多多的技术沉淀 (Alt + H)">多多的技术沉淀</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索
+    </h1>
+    <div class="post-meta"><span title='2025-12-11 08:01:06 +0800 CST'>2025年12月11日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#%e4%b8%80%e5%88%b6%e5%9b%be%e5%b8%88%e4%b8%8e%e4%bd%9c%e5%ae%b6embedding-%e6%a8%a1%e5%9e%8b-vs-llm" aria-label="一、“制图师”与“作家”：Embedding 模型 vs LLM">一、“制图师”与“作家”：Embedding 模型 vs LLM</a></li>
+                <li>
+                    <a href="#%e4%ba%8c%e5%90%91%e9%87%8f%e6%95%b0%e6%8d%ae%e5%ba%93%e7%9a%84%e6%a0%b8%e5%bf%83%e5%8f%82%e6%95%b0%e8%a7%a3%e6%9e%90" aria-label="二、向量数据库的核心参数解析">二、向量数据库的核心参数解析</a></li>
+                <li>
+                    <a href="#%e4%b8%89%e6%a3%80%e7%b4%a2%e9%80%bb%e8%be%91sql-%e8%a7%86%e8%a7%92%e4%b8%8b%e7%9a%84-top-k-%e4%b8%8e-threshold" aria-label="三、检索逻辑：SQL 视角下的 Top-K 与 Threshold">三、检索逻辑：SQL 视角下的 Top-K 与 Threshold</a></li>
+                <li>
+                    <a href="#%e5%9b%9bspring-ai-%e5%ae%8c%e6%95%b4-rag-%e6%b5%81%e7%a8%8b%e5%ae%9e%e7%8e%b0" aria-label="四、Spring AI 完整 RAG 流程实现">四、Spring AI 完整 RAG 流程实现</a></li>
+                <li>
+                    <a href="#%e4%ba%94%e7%97%9b%e7%82%b9%e4%b8%8e%e6%80%9d%e8%80%83%e7%94%a8%e6%88%b7%e8%af%b4%e6%96%b9%e8%a8%80%e6%80%8e%e4%b9%88%e5%8a%9e" aria-label="五、痛点与思考：用户“说方言”怎么办">五、痛点与思考：用户“说方言”怎么办</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。</p>
+<p>本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。</p>
+<h2 id="一制图师与作家embedding-模型-vs-llm">一、“制图师”与“作家”：Embedding 模型 vs LLM<a hidden class="anchor" aria-hidden="true" href="#一制图师与作家embedding-模型-vs-llm">#</a></h2>
+<p>在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。</p>
+<p><strong>Embedding模型 (如 BGE-M3, text-embedding-3)</strong></p>
+<p>角色：它是制图师。</p>
+<p>功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。</p>
+<p>输入/输出： 输入文本-&gt;输出 [0.012, -0.98, &hellip;]。</p>
+<p><strong>LLM (如Qwen, DeepSeek-V3)</strong></p>
+<p>角色：它是作家。</p>
+<p>功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。</p>
+<p>输入/输出： 输入提示词(Prompt)-&gt;输出自然语言。</p>
+<p><strong>Spring AI 的策略</strong></p>
+<p>使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。</p>
+<h2 id="二向量数据库的核心参数解析">二、向量数据库的核心参数解析<a hidden class="anchor" aria-hidden="true" href="#二向量数据库的核心参数解析">#</a></h2>
+<p>当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：</p>
+<p><strong>Dimensions (维度)</strong></p>
+<p>这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。</p>
+<p><strong>Index Type (索引类型)</strong></p>
+<p>为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。</p>
+<p>HNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。</p>
+<p>IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。</p>
+<p><strong>Distance Type (距离/度量方式)</strong></p>
+<p>决定了如何计算两个向量像不像，常见计算方式包括Cosine、Euclidean、Inner Product三种。</p>
+<p>Cosine (余弦相似度)： 衡量两个向量夹角的余弦值。最常用，侧重于语义方向的一致性，而非文本长度。</p>
+<p>Euclidean / L2 (欧几里得距离)： 空间中两点的直线距离。</p>
+<p>Inner Product (内积)： 适用于归一化后的向量。</p>
+<h2 id="三检索逻辑sql-视角下的-top-k-与-threshold">三、检索逻辑：SQL 视角下的 Top-K 与 Threshold<a hidden class="anchor" aria-hidden="true" href="#三检索逻辑sql-视角下的-top-k-与-threshold">#</a></h2>
+<p>在Spring AI的VectorStore 接口背后，实际发生的是一次基于数学运算的数据库查询。</p>
+<p>假设我们使用 PostgreSQL (pgvector)，当用户发起查询时，涉及以下核心参数：</p>
+<p><strong>Top-K</strong>：截取最相似的前K个片段。</p>
+<p><strong>Similarity Threshold (相似度阈值)</strong>： 这是一个 0 到 1 之间的数值(通常)。只有相似度高于该值的片段才会被召回，用于过滤低相关性的噪声，通常Similarity与相似度成正比,其计算公式如下,具体实现视数据库算子定义而定：                              </p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>   Similarity <span style="color:#ff79c6">=</span> <span style="color:#bd93f9">1</span> <span style="color:#ff79c6">-</span> Distance
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>SQL示例</strong>：</p>
+<p>Spring AI 会将自然语言问题转化为向量 [0.1, &hellip;]，然后执行类似如下的 SQL：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#6272a4">-- 假设 embedding 列存储向量数据
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4">-- &lt;=&gt; 操作符代表余弦距离计算
+</span></span></span><span style="display:flex;"><span><span style="color:#ff79c6">SELECT</span> content, (<span style="color:#bd93f9">1</span> <span style="color:#ff79c6">-</span> (embedding <span style="color:#ff79c6">&lt;=&gt;</span> <span style="color:#f1fa8c">&#39;[0.1, 0.2, ... 0.9]&#39;</span>)) <span style="color:#ff79c6">as</span> similarity <span style="color:#ff79c6">FROM</span> enterprise_knowledge_base 
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">WHERE</span> (<span style="color:#bd93f9">1</span> <span style="color:#ff79c6">-</span> (embedding <span style="color:#ff79c6">&lt;=&gt;</span> <span style="color:#f1fa8c">&#39;[0.1, 0.2, ... 0.9]&#39;</span>)) <span style="color:#ff79c6">&gt;</span> <span style="color:#bd93f9">0</span>.<span style="color:#bd93f9">75</span>  <span style="color:#6272a4">-- 对应 similarityThreshold
+</span></span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">ORDER</span> <span style="color:#ff79c6">BY</span> embedding <span style="color:#ff79c6">&lt;=&gt;</span> <span style="color:#f1fa8c">&#39;[0.1, 0.2, ... 0.9]&#39;</span> <span style="color:#ff79c6">ASC</span>          <span style="color:#6272a4">-- 按距离排序
+</span></span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">LIMIT</span> <span style="color:#bd93f9">5</span>; 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="四spring-ai-完整-rag-流程实现">四、Spring AI 完整 RAG 流程实现<a hidden class="anchor" aria-hidden="true" href="#四spring-ai-完整-rag-流程实现">#</a></h2>
+<p>理解了底层逻辑后，在 Spring AI 中实现 RAG 就变得顺理成章。代码逻辑分为三步：</p>
+<p><strong>向量化</strong>：将用户问题通过 Embedding Model 转为向量。</p>
+<p><strong>检索</strong>：拿着向量去数据库查 Top-K。</p>
+<p><strong>生成</strong>：将检索到的文本(Context)注入到Prompt中，发送给LLM。</p>
+<p><img alt="图片" loading="lazy" src="/images/springai3-1.png"></p>
+<h2 id="五痛点与思考用户说方言怎么办">五、痛点与思考：用户“说方言”怎么办<a hidden class="anchor" aria-hidden="true" href="#五痛点与思考用户说方言怎么办">#</a></h2>
+<p>至此，我们已经搭建了一个标准的 RAG 系统。但在实际生产中，我们面临一个严峻的挑战：Garbage In, Garbage Out。</p>
+<p>如果用户问得专业：“请列出2025考勤制度中关于年假的规定。”-&gt;检索精准。如果用户问得随性：“请假怎么弄？我想歇两天。”-&gt;语义模糊，可能检索到“年假”、“事假”甚至“调休”等一堆无关数据。如果检索的相关度无法得到物理保证，那么检索出的上下文是错误的，LLM就会一本正经地胡说八道。</p>
+<p>向量检索高度依赖“语义相似性”，如何解决这个问题？</p>
+<p>这就需要我们跳出简单的“检索-生成”线性思维，引入**智能体工作流 (Agentic Workflow)**的概念。</p>
+<p>我们需要构建一个输入规整化的预处理环节：先调用一次 LLM 提取关键意图(“提取关键字”)，再用规整后的关键字去查向量库，拿到结果后再次调用LLM进行自校验(Self-Correction)。</p>
+<p>这种“LLM-&gt;Vector-&gt;LLM”的链式思考与自我修正机制，正是我们下一篇要深入探讨的主题：从RAG走向Agent —— 神经符号AI与反思迭代的工程实践。</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">多多的技术沉淀</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
