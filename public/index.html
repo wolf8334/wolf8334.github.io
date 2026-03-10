@@ -166,6 +166,33 @@
 
 <article class="post-entry"> 
   <header class="entry-header">
+    <h2 class="entry-hint-parent">Spring AI 全景指南 (四) Spring AI &#43; PGVector &#43; 硅基流动：构建生产级RAG 架构的理性之路
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>01 引子：从理论推演到工程落地 在此前的系列文章中，我们已经抽丝剥茧，完成了对 RAG（检索增强生成）从高维向量空间到语义检索算法的理论祛魅。我们讨论了什么是 Embedding，辨析了 HNSW 与 IVFFlat 的优劣，也厘清了 LLM 在链路中的边界。
+但架构师的价值不在于画出完美的 PPT，而在于工程落地。理论上无懈可击的算法，如果无法在现有的企业级技术栈中低成本、高可靠地运行，对业务而言就是零价值。
+我们将暂别纯理论的探讨，正式进入技术实战阶段。本篇作为实战系列的开篇，将从架构选型入手，手把手教你如何在 Java/Spring 生态中，搭建一个生产可用的 RAG 骨架。
+02 架构决策：基于维护性与成本的考量 在将理论转化为代码之前，必须进行审慎的技术选型。在构建这套 RAG 系统的过程中，我们将遵循最小化架构复杂度、最大化生态兼容性、极致的成本控制这三点原则。
+1. 应用层：为何选择 Spring AI
+在 Python 占据统治地位的 AI 领域，LangChain4j 固然优秀，但Spring AI作为 Spring 官方的顶级项目，其战略意义不言而喻。它提供了高度统一的抽象层（ChatClient和VectorStore），实现了底层模型与业务代码的完全解耦。
+这意味着业务系统无需绑定特定模型供应商。无论是 OpenAI、DeepSeek 还是通义千问，对于上层业务仅仅是配置文件的差异。这种原生级别的抽象能力，是长期维护性的最佳保障。
+2. 数据层：为何回归 PostgreSQL &#43; pgvector
+在引入 Milvus 或 Chroma 等专用向量数据库之前，必须审视运维成本。对于绝大多数中等规模的知识库场景，PostgreSQL 配合 pgvector 插件是更理性的选择。
+架构减负：复用现有的 PG 基础设施，避免引入新的中间件维护负担。
+事务一致：PG 能够在一个事务中同时处理向量数据（Embedding）与结构化业务数据（如权限、元数据）。这种 ACID 特性是独立向量库难以比拟的优势。
+混合检索：PG 强大的全文检索能力为后续实现“关键词&#43;向量”的混合检索（Hybrid Search）奠定了基础。
+3. 模型层：为何接入硅基流动 (SiliconFlow)
+在公有云模型的选择上，硅基流动提供了目前市场上极具竞争力的解决方案。
+成本优势：该平台托管了 Qwen 2.5 (7B/14B/32B/72B)、DeepSeek V3 等顶流开源模型，并提供了极高额度的免费调用策略。这对于研发阶段和中小规模应用而言，几乎抹平了推理成本。
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-12-17 19:11:06 +0800 CST'>2025年12月17日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
+  <a class="entry-link" aria-label="post link to Spring AI 全景指南 (四) Spring AI &#43; PGVector &#43; 硅基流动：构建生产级RAG 架构的理性之路" href="http://localhost:1313/posts/springai-4/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
     <h2 class="entry-hint-parent">Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索
     </h2>
   </header>
@@ -194,6 +221,38 @@ IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检
   </div>
   <footer class="entry-footer"><span title='2025-12-11 08:01:06 +0800 CST'>2025年12月11日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
   <a class="entry-link" aria-label="post link to Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索" href="http://localhost:1313/posts/springai-3/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>在上一篇中，我们通过 ChatClient 实现了与大模型的基础对话。然而，通用LLM(如 Qwen、DeepSeek)存在一个致命缺陷：它是“无状态”的，且“知识截止”的。它不知道你公司内部的 2025年KPI制度，也无法实时读取最新的数据库变动。要解决这一问题，不能仅靠微调(Fine-tuning)，更轻量级、工程化的方案是 RAG(Retrieval-Augmented Generation，检索增强生成)。
+本文将深入RAG的心脏——向量(Vector)，剖析Embedding模型与LLM的本质区别，并详解 Spring AI中向量检索的核心参数与SQL实现逻辑。
+一、“制图师”与“作家”：Embedding 模型 vs LLM 在 RAG 架构中，我们通常需要部署两类完全不同的模型。很多开发者容易混淆它们的职责，例如将 BGE (BAAI General Embedding) 与 Qwen (通义千问) 混为一谈。
+Embedding模型 (如 BGE-M3, text-embedding-3)
+角色：它是制图师。
+功能：它不负责说话，只负责将文本“压缩”成一串高维浮点数数组(向量)。它致力于将语义相似的文本映射到向量空间中距离相近的坐标点。
+输入/输出： 输入文本-&gt;输出 [0.012, -0.98, …]。
+LLM (如Qwen, DeepSeek-V3)
+角色：它是作家。
+功能：它负责理解上下文，并基于概率预测生成下一个字。在RAG中，它负责阅读检索到的片段，并组织语言回答用户问题。
+输入/输出： 输入提示词(Prompt)-&gt;输出自然语言。
+Spring AI 的策略
+使用EmbeddingClient调用BGE模型进行数据的向量化存储与查询；使用ChatClient调用Qwen进行最终答案的生成。
+二、向量数据库的核心参数解析 当我们将数据存入向量数据库(如 PostgreSQL 的 pgvector 插件、Milvus、Chroma)时，必须理解以下关键参数，这些参数直接决定了检索的精度与性能：
+Dimensions (维度)
+这是向量数组的长度。例如，OpenAI的text-embedding-3-small是1536维，而某些轻量级BGE模型可能是768维。Spring AI 配置的 vector-store 维度必须与你选用的Embedding模型严格一致，否则会抛出维度不匹配错误。
+Index Type (索引类型)
+为了在百万级数据中毫秒级找到相似向量，不能暴力扫描，需要索引，最常用的有HNSW和IVF两种。
+HNSW (Hierarchical Navigable Small World)：图索引。性能最强，适合内存充足、对延迟要求极高的场景。
+IVF (Inverted File)： 倒排索引。将向量空间划分为多个聚类，检索时只搜索最近的几个聚类。适合数据量极大、显存/内存受限的场景。
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-12-11 08:01:06 +0800 CST'>2025年12月11日</span>&nbsp;·&nbsp;<span>1 分钟</span>&nbsp;·&nbsp;<span>钱多多</span></footer>
+  <a class="entry-link" aria-label="post link to Spring AI 全景指南 (三) 解构 RAG —— 从 BGE 向量模型到高维语义检索" href="http://localhost:1313/posts/springai-5/"></a>
 </article>
 
 <article class="post-entry"> 
