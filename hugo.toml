@@ -8,6 +8,13 @@ theme = 'PaperMod'
 enableRobotsTXT = true
 buildFuture = false
 
+[markup]
+  [markup.highlight]
+    # 推荐几个好看的：dracula (深色经典), monokai (极客感), vs (浅色)
+    style = "dracula" 
+    lineNos = true       # 是否显示行号
+    noClasses = true     # 建议设为 true，这样样式会直接注入，不用额外加 CSS
+
 [params]
     env = "production"
     title = "徐浩然"

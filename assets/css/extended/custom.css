@@ -1,6 +1,6 @@
-/* 1. 拓宽主页面和文章页面的宽度 */
+/* 拓宽主页面和文章页面的宽度 */
 :root {
-    --main-width: 1000px; /* 你可以根据喜好调整，比如 1100px 或 1200px */
+    --main-width: 1000px; 
 }
 
 .main {
@@ -11,14 +11,41 @@
     max-width: var(--main-width);
 }
 
-/* 2. 优化字体：使用更清晰的系统字体序列 */
+/* 优化字体：使用更清晰的系统字体序列 */
 body {
     font-family: "Inter", "Helvetica Neue", "Helvetica", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
     font-size: 16px;
     line-height: 1.8;
 }
 
-/* 3. 让代码块也稍微宽一点，方便阅读 */
+/* 代码块容器样式 */
 .post-content pre {
+    background-color: #282a36 !important; /* 换成深色背景，比如 Dracula 的底色 */
+    border-radius: 8px;                  /* 圆角加大，看起来更润 */
+    padding: 1.2em;                      /* 增加内边距 */
+    border: 1px solid #44475a;           /* 加个细边框 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* 加点阴影，有悬浮感 */
     max-width: 100%;
+}
+
+/* 里面的代码字体 */
+.post-content code {
+    font-family: 'Fira Code', 'Consolas', monospace; /* 换个带连字的程序员专用字体 */
+    font-size: 0.9em;
+}
+
+/* 针对 YAML 这种缩进很多的语言，调整一下行高 */
+.highlight .cl {
+    line-height: 1.6;
+}
+
+/* 强制取消代码块中所有元素的斜体效果 */
+.post-content code span, 
+.post-content pre code span {
+    font-style: normal !important;
+}
+
+/* 如果你只想针对关键字取消斜体，可以更精准一点（可选） */
+.chroma .k, .chroma .kd, .chroma .kn, .chroma .kt {
+    font-style: normal !important;
 }
