@@ -21,7 +21,7 @@ buildFuture = false
 
     # 首页信息流设置
     [params.homeInfoParams]
-        Title = "👋 欢迎来到我的技术边疆"
+        Title = "欢迎来到我的技术边疆"
         Content = "在这里记录RAG、 NL2SQL、MoE 架构以及与大模型斗智斗勇的实战经验。"
 
     # 社交链接（放你的 GitHub/公众号）
