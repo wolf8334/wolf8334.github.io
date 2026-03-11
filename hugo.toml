@@ -15,11 +15,20 @@ buildFuture = false
     lineNos = true       # 是否显示行号
     noClasses = true     # 建议设为 true，这样样式会直接注入，不用额外加 CSS
 
+  [markup.goldmark]
+    [markup.goldmark.extensions]
+      [markup.goldmark.extensions.passthrough]
+        enable = true
+        [markup.goldmark.extensions.passthrough.delimiters]
+          block = [['$$', '$$'], ['\\[', '\\]']]
+          inline = [['$', '$'], ['\\(', '\\)']]
+
 [params]
     env = "production"
     title = "徐浩然"
     description = "NL2SQL RAG 架构 | 大模型调优 | 技术随笔"
     author = "钱多多"
+    math = true
     
     # 界面功能
     ShowCodeCopyButtons = true # 代码一键复制，面试官最爱

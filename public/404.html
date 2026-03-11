@@ -70,7 +70,15 @@
         document.querySelector("html").dataset.theme = 'light';
     }
 
-</script><meta property="og:url" content="http://localhost:1313/404.html">
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+        ]
+    });"></script><meta property="og:url" content="http://localhost:1313/404.html">
   <meta property="og:site_name" content="多多的技术沉淀">
   <meta property="og:title" content="404 Page not found">
   <meta property="og:description" content="NL2SQL RAG 架构 | 大模型调优 | 技术随笔">

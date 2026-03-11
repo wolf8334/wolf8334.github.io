@@ -6,8 +6,36 @@
     <description>Recent content in Posts on 多多的技术沉淀</description>
     <generator>Hugo</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Wed, 17 Dec 2025 19:11:06 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 11 Mar 2026 15:20:06 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>大模型基础学习 一</title>
+      <link>http://localhost:1313/posts/springai-5/</link>
+      <pubDate>Wed, 11 Mar 2026 15:20:06 +0800</pubDate>
+      <guid>http://localhost:1313/posts/springai-5/</guid>
+      <description>&lt;h2 id=&#34;大模型内部基本原理&#34;&gt;大模型内部基本原理&lt;/h2&gt;
+&lt;p&gt;2017年，谷歌发表了里程碑式的论文《&lt;a href=&#34;https://arxiv.org/abs/1706.03762&#34;&gt;Attention Is All You Need&lt;/a&gt;》，正式提出了 Transformer 架构。这一架构通过自注意力机制（Self-Attention）优化了以往循环神经网络的串行逻辑，为后续 GPT、Llama 以及 年最新的 Qwen 3.5 等大模型奠定了物理基础。&lt;/p&gt;
+&lt;p&gt;以下是大模型内部数据处理的核心机制与流转路径解析。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;一-特征提取-feature-extraction理解与感悟&#34;&gt;一、 特征提取 (Feature Extraction)：理解与感悟&lt;/h3&gt;
+&lt;p&gt;这是每一层网络的核心计算环节。模型利用 Q（查询）、K（键）、V（值） 的矩阵运算，在当前输入的上下文中寻找相关性。&lt;/p&gt;
+&lt;p&gt;传统注意力：通过 $Q \times K^T$ 计算全局相关性。其痛点在于会产生 $N \times N$（$N$ 为字符数）的巨大矩阵，导致显存占用随字数平方级爆炸。&lt;/p&gt;
+&lt;p&gt;线性注意力 (DeltaNet)：在 Qwen 3.5 等新一代架构中，通过改变计算顺序（先算 $K \times V$），将复杂度降为线性。它虽然在极精细的逻辑上略有简化，但极大提升了处理超长文本的速度。&lt;/p&gt;
+&lt;p&gt;结果产出：这一步的输出被称为残差（Residual），代表了该层网络对输入信息的“新加工”或“新理解”。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;二-残差相加-residual-addition底稿保底&#34;&gt;二、 残差相加 (Residual Addition)：底稿保底&lt;/h3&gt;
+&lt;p&gt;在提取出新特征后，模型会执行 Add（加法） 操作，将新信息贴在原始输入上。&lt;/p&gt;
+&lt;p&gt;物理公式：y = f(x) + x。其中 $x$ 是底稿，$f(x)$ 是本层学到的残差补丁。&lt;/p&gt;
+&lt;p&gt;核心作用：它建立了一条保底的直连通道。由于大模型层数极深，数据在复杂的矩阵乘法中极易扭曲或丢失。残差连接确保了无论网络多深，最原始的核心信息都能无损传递，保证了推理的稳定性。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;三-数值校准-numerical-calibration稳压与标准化&#34;&gt;三、 数值校准 (Numerical Calibration)：稳压与标准化&lt;/h3&gt;
+&lt;p&gt;由于残差相加会导致数值不断累加，模型必须通过 Norm（归一化） 进行校准。&lt;/p&gt;
+&lt;p&gt;计算过程：模型计算当前向量的平均值和方差，强行将所有数值拉回到标准的正态分布区间（均值为 0，标准差为 1）。&lt;/p&gt;
+&lt;p&gt;核心作用：它相当于电路里的“稳压器”。它防止了数值爆炸导致的硬件计算崩溃，同时确保数据落在激活函数（如 SiLU/GeLU）最敏感的区间内。这让模型能敏锐地捕捉细微特征差异，避免进入“思维饱和”状态。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;四-层级传递-hierarchical-transfer接力与递进&#34;&gt;四、 层级传递 (Hierarchical Transfer)：接力与递进&lt;/h3&gt;
+&lt;p&gt;经过校准的标准数据将作为下一层网络的“新底稿”向下传递。&lt;/p&gt;</description>
+    </item>
     <item>
       <title>Spring AI 全景指南（四）Spring AI &#43; PGVector &#43; 硅基流动：构建生产级RAG 架构的理性之路</title>
       <link>http://localhost:1313/posts/springai-4/</link>
